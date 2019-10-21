@@ -25,8 +25,6 @@ class PostController extends Controller
         $posts = Post::latest()->where('category_id', $q['category_id'])->paginate(5);
         $posts->load('category', 'user');
 
-      //  dd($posts);
-
         return view ('posts.index',[
           'posts' => $posts,
           'category_id' => $q['category_id']
@@ -35,8 +33,6 @@ class PostController extends Controller
 
         $posts = Post::latest()->paginate(5);
         $posts->load('category', 'user');
-
-      //  dd($posts);
 
         return view ('posts.index',[
           'posts' => $posts,
@@ -64,7 +60,7 @@ class PostController extends Controller
      */
     public function store(PostRequest $request)
     {
-        if($request->file('image')->isValid()) {
+       if($request->file('image')->isValid()) {
 
             $post = new Post;
             // $input = $request->only($post->getFillable());
@@ -73,17 +69,14 @@ class PostController extends Controller
             $post->content = $request->content;
             $post->title = $request->title;
 
-            $filename = $request->file('image')->store('public/image');
-            $post->image = str_replace('public/', 'storage/', $filename);
+            $time = date("Ymdhis");
+            $filename = $request->file('image')->storeAs('public/image', $time.'_'.Auth::user()->id . '.jpg');
 
 
-          //  if(!isset($input['image'])) {
-          //    array_set($input, 'image', basename($filename));
-          //  }
+            $post->image = basename($filename);
 
-            //$post = $post->create($input);
             $post->save();
-        }
+          }
 
 
         return redirect('/');
@@ -97,10 +90,12 @@ class PostController extends Controller
      */
     public function show(Post $post)
     {
-      $post->load('category', 'user', 'comments.user');
+      $post->load('category', 'user', 'comments.user',);
 
       return view ('posts.show',[
+
         'post' => $post,
+
       ]);
     }
 
@@ -151,5 +146,14 @@ class PostController extends Controller
         'search_result' => $search_result,
         'search_query' => $request->search
     ]);
+    }
+
+    public function favorite($id){
+
+      $post = Post::findOrFail($id); // findOrFail 見つからなかった時の例外処理
+
+      $like = $post->likes()->where('user_id', Auth::user()->id)->first();
+    //  dd($like);
+      return view('posts.show')->with(array('post' => $post, 'like' => $like));
     }
 }
